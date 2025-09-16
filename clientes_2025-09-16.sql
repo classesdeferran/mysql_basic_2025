@@ -212,8 +212,13 @@ values ("Peter", "Parker", "Nueva York", "USA", 25),
 -- Mostrar el nombre de los clientes de este modo "apellido, nombre" como "nombre cliente"
 -- Mostrar el/los clientes de mayor edad
 -- Nombres de clientes cuyo apellido contiene la letra a
--- Clientes que vivien en Londres ordenados por apellido de forma descendente
+-- Clientes que viven en Londres ordenados por apellido de forma descendente
 -- Promedio de edades de los clientes que viven en USA
+-- Datos completos del cliente/s con nombre más largo
+-- Clientes cuyo nombre acaba en "l"
+-- Clientes cuyo apellido contiene la "k"
+-- Clientes entre 30 y 50 años (incluidos)
+-- Promedio de edad de los clientes del Reino Unido
 
 -- Nombre del país y cuantos clientes hay en ese país: USA 3
 -- En qué país hay menos clientes
