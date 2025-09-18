@@ -380,7 +380,113 @@ insert into clientes_productos(id_cliente, id_producto, cantidad) values
 --    el nombre y precio del producto
 --    el cantidad y total de la compra
 
+SELECT cl.nombre_cliente, cl.apellido_cliente, 
+p.nombre_producto, p.precio_producto, 
+cp.cantidad, concat((p.precio_producto * cp.cantidad), "€") as total
+FROM paises
+NATURAL JOIN ciudades
+NATURAL JOIN clientes cl
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+WHERE paises.nombre_pais = "Reino Unido"
+ORDER BY total desc;
+
 -- Mostrar los totales de compra de cada país que ha comprado algo
+SELECT nombre_pais as "País", sum((p.precio_producto * cp.cantidad)) as "Total compra"
+FROM paises
+NATURAL JOIN ciudades
+NATURAL JOIN clientes cl
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY nombre_pais
+;
+-- Mostrar la información del producto más caro
+-- ¿Cúal es el precio más alto?
+SELECT max(precio_producto) FROM productos;	
+
+SELECT *
+FROM productos
+WHERE precio_producto = (SELECT max(precio_producto) FROM productos)
+;
+
+
+-- Mostrar los clientes que han hecho más de dos compras
+SELECT nombre_cliente, apellido_cliente, count(cp.id_cliente) as "Total compras"
+FROM clientes
+NATURAL JOIN clientes_productos cp
+GROUP BY cp.id_cliente
+HAVING `Total compras` > 2
+;
+
+-- Mostrar la facturación de cada cliente
+SELECT nombre_cliente, apellido_cliente, sum(cp.cantidad * p.precio_producto) as "Total compra"	
+FROM clientes 
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY cp.id_cliente
+ORDER BY `Total compra` desc
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT nombre_cliente, apellido_cliente, sum((p.precio_producto * cp.cantidad)) as total
+FROM clientes
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY cp.id_cliente
+ORDER BY total desc
+;
 
 -- Mostrar qué clientes no han comprado nada
+-- El id de los clientes qué han comprado algo
+SELECT DISTINCT id_cliente
+FROM clientes_productos;
+
+SELECT nombre_cliente, apellido_cliente
+FROM clientes
+WHERE id_cliente NOT IN (SELECT DISTINCT id_cliente FROM clientes_productos)
+;
+
+
+
+
+
+
+
+
+
+
+SELECT DISTINCT nombre_cliente, apellido_cliente
+FROM clientes
+WHERE id_cliente NOT IN (SELECT DISTINCT id_cliente FROM clientes_productos)
+;
+
+
+-- Mostrar qué cliente ha comprado más
+SELECT nombre_cliente, apellido_cliente, 
+sum(cp.cantidad * p.precio_producto) as total	
+FROM clientes 
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY cp.id_cliente
+
+
+;
+
+-- Busca el id del cliente que ha comprado más
+
+
+
+
 
