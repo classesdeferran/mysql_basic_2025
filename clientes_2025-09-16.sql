@@ -1,3 +1,10 @@
+-- instrucciones para crear una base de datos
+CREATE SCHEMA if not EXISTS clientes3;
+CREATE DATABASE IF NOT EXISTS clientes3;
+
+-- Usar una base de datos en concreto
+-- Hay que ejecutar esta instrucción al principio
+-- de cada conexión
 USE clientes3;
 
 /*
@@ -214,7 +221,7 @@ values ("Peter", "Parker", "Nueva York", "USA", 25),
 -- Nombres de clientes cuyo apellido contiene la letra a
 -- Clientes que viven en Londres ordenados por apellido de forma descendente
 -- Promedio de edades de los clientes que viven en USA
--- Datos completos del cliente/s con nombre más largo
+
 -- Clientes cuyo nombre acaba en "l"
 -- Clientes cuyo apellido contiene la "k"
 -- Clientes entre 30 y 50 años (incluidos)
@@ -222,4 +229,158 @@ values ("Peter", "Parker", "Nueva York", "USA", 25),
 
 -- Nombre del país y cuantos clientes hay en ese país: USA 3
 -- En qué país hay menos clientes
+
+
+SELECT *
+FROM productos
+WHERE precio_producto > 500;
+
+SELECT pais_cliente as pais, COUNT(pais_cliente) as "numero de clientes"
+FROM clientes
+GROUP BY pais_cliente
+HAVING count(pais_cliente) > 2
+;
+
+
+CREATE TABLE paises (
+id_pais int AUTO_INCREMENT not null PRIMARY KEY,
+nombre_pais varchar(50) not null UNIQUE
+);
+
+/*
+INSERT INTO paises(nombre_pais)
+VALUES ("USA"), ("Reino Unido"), ("Francia");
+*/
+
+-- ¿Qué paises hay en la tabla clientes?
+SELECT DISTINCT pais_cliente
+FROM clientes;
+
+INSERT INTO paises(nombre_pais)
+SELECT DISTINCT pais_cliente
+FROM clientes;
+
+CREATE TABLE ciudades(
+id_ciudad int AUTO_INCREMENT not null PRIMARY KEY,
+nombre_ciudad varchar(100) not null,
+id_pais int not null
+);
+
+-- Mostrar los nombres de las ciudades sin repeticiones
+-- y a que pais corresponden
+SELECT DISTINCT poblacion_cliente, pais_cliente
+FROM clientes;
+
+INSERT INTO ciudades(nombre_ciudad, pais)
+SELECT DISTINCT poblacion_cliente, pais_cliente
+FROM clientes;
+
+UPDATE ciudades c, paises p
+SET c.id_pais = p.id_pais
+WHERE c.pais = p.nombre_pais
+;
+
+-- Vincular con el id_ciudad la tabla ciudades y 
+-- la tabla clientes
+-- paso 1 añadir columna con id_ciudad en tabla clientes
+alter table clientes
+add column id_ciudad int;
+
+UPDATE clientes cl, ciudades ci
+SET cl.id_ciudad = ci.id_ciudad
+WHERE cl.poblacion_cliente = ci.nombre_ciudad
+;
+
+ALTER TABLE clientes 
+DROP COLUMN pais_cliente,
+DROP COLUMN poblacion_cliente;
+
+ALTER TABLE ciudades
+DROP COLUMN pais;
+
+select *
+from clientes;
+
+-- Solución a evitar (aunque funciona)
+SELECT cl.nombre_cliente, cl.apellido_cliente, cl.edad, ci.nombre_ciudad
+FROM clientes cl, ciudades ci
+WHERE cl.id_ciudad = ci.id_ciudad;
+
+-- Solución correcta
+SELECT cl.nombre_cliente, cl.apellido_cliente, cl.edad, ci.nombre_ciudad, p.nombre_pais
+FROM clientes cl
+JOIN ciudades ci
+ON cl.id_ciudad = ci.id_ciudad
+JOIN paises p
+ON ci.id_pais = p.id_pais
+;
+
+SELECT cl.nombre_cliente, cl.apellido_cliente, cl.edad, ci.nombre_ciudad, p.nombre_pais
+FROM clientes cl
+NATURAL JOIN ciudades ci
+NATURAL JOIN paises p
+;
+
+CREATE table clientes_productos (
+id_clientes_productos int auto_increment not null primary key,
+id_cliente int not null,
+id_producto int not null,
+cantidad int not null	
+);
+
+
+insert into clientes_productos(id_cliente, id_producto, cantidad)
+VALUES (1, 1, 2); 
+
+-- Mostrar qué cliente ha comprado cual producto
+SELECT cl.nombre_cliente, cl.apellido_cliente, cl.edad, 
+p.nombre_producto, p.precio_producto, cp.cantidad, 
+(p.precio_producto * cp.cantidad) as total
+FROM clientes cl
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+;
+
+ALTER TABLE `clientes3`.`ciudades` 
+ADD INDEX `fk_paises_idx` (`id_pais` ASC) VISIBLE;
+;
+ALTER TABLE `clientes3`.`ciudades` 
+ADD CONSTRAINT `fk_paises`
+  FOREIGN KEY (`id_pais`)
+  REFERENCES `clientes3`.`paises` (`id_pais`)
+  ON DELETE NO ACTION
+  ON UPDATE CASCADE;
+  
+  
+ALTER TABLE clientes
+ADD FOREIGN KEY (id_ciudad)
+REFERENCES ciudades(id_ciudad)
+ON UPDATE CASCADE;
+
+alter table clientes_productos
+add constraint fk_clientes_cp
+foreign key(id_cliente)
+references clientes(id_cliente)
+on update cascade;
+
+alter table clientes_productos
+add constraint fk_productos_cp
+foreign key(id_producto)
+references productos(id_producto)
+on update cascade;
+
+insert into clientes_productos(id_cliente, id_producto, cantidad) values
+(3, 5, 4), (6, 4, 1), (6, 4, 6);
+insert into clientes_productos(id_cliente, id_producto, cantidad) values
+(6, 3, 5), (7, 1, 4), (5, 4, 6);
+
+-- Mostrar las compras de los clientes del Reino Unido
+-- Debe aparecer: 
+--    nombre y apellido del cliente, 
+--    el nombre y precio del producto
+--    el cantidad y total de la compra
+
+-- Mostrar los totales de compra de cada país que ha comprado algo
+
+-- Mostrar qué clientes no han comprado nada
 
