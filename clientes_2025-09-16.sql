@@ -453,7 +453,7 @@ ORDER BY total desc
 SELECT DISTINCT id_cliente
 FROM clientes_productos;
 
-SELECT nombre_cliente, apellido_cliente
+SELECT id_cliente, nombre_cliente, apellido_cliente
 FROM clientes
 WHERE id_cliente NOT IN (SELECT DISTINCT id_cliente FROM clientes_productos)
 ;
@@ -480,13 +480,157 @@ FROM clientes
 NATURAL JOIN clientes_productos cp
 NATURAL JOIN productos p
 GROUP BY cp.id_cliente
-
-
+HAVING total = (
+	SELECT sum(cp.cantidad * p.precio_producto) as total	
+	FROM clientes 
+	NATURAL JOIN clientes_productos cp
+	NATURAL JOIN productos p
+	GROUP BY cp.id_cliente
+	ORDER BY total desc
+	LIMIT 1
+)
+ORDER BY total desc
 ;
 
--- Busca el id del cliente que ha comprado más
+SELECT sum(cp.cantidad * p.precio_producto) as total	
+FROM clientes 
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY cp.id_cliente
+ORDER BY total desc
+LIMIT 1
+;
+
+-- Insertamos valores de prueba
+INSERT INTO productos(nombre_producto, precio_producto) 
+values ("test", 4987.98);
+insert into clientes_productos(id_cliente, id_producto, cantidad) 
+VALUES (2, 10, 1);
+
+-- Una vez comprobado que funciona lo podemos borrar
+DELETE FROM clientes_productos WHERE id_producto = 10;
+DELETE FROM productos WHERE id_producto = 10;
+
+
+SELECT NOW();
+
+
+-- VISTAS
+-- Vista para mostrar qué cliente ha comprado más
+-- Borrar la vista si existe (no es imprescindible)
+DROP VIEW IF EXISTS vw_mejor_cliente;
+-- Crear la vista
+CREATE VIEW vw_mejor_cliente AS
+SELECT nombre_cliente, apellido_cliente, 
+sum(cp.cantidad * p.precio_producto) as total	
+FROM clientes 
+NATURAL JOIN clientes_productos cp
+NATURAL JOIN productos p
+GROUP BY cp.id_cliente
+HAVING total = (
+	SELECT sum(cp.cantidad * p.precio_producto) as total	
+	FROM clientes 
+	NATURAL JOIN clientes_productos cp
+	NATURAL JOIN productos p
+	GROUP BY cp.id_cliente
+	ORDER BY total desc
+	LIMIT 1
+)
+ORDER BY total desc
+;
+
+-- Para ejecutar la vista
+SELECT * FROM vw_mejor_cliente;
+
+-- Para mostrar las tablas y vistas de la base de datos
+SHOW TABLES;
+
+CREATE OR REPLACE VIEW vw_mejor_cliente AS
+	SELECT concat_ws(" ", nombre_cliente, apellido_cliente) as "nombre del cliente" , 
+	sum(cp.cantidad * p.precio_producto) as total	
+	FROM clientes 
+	NATURAL JOIN clientes_productos cp
+	NATURAL JOIN productos p
+	GROUP BY cp.id_cliente
+	HAVING total = (
+		SELECT sum(cp.cantidad * p.precio_producto) as total	
+		FROM clientes 
+		NATURAL JOIN clientes_productos cp
+		NATURAL JOIN productos p
+		GROUP BY cp.id_cliente
+		ORDER BY total desc
+		LIMIT 1
+	)
+	ORDER BY total desc
+;
+
+-- Condiciones para poder hacer un INSERT, UPDATE o DELETE a una vista:
+-- 		1) La vista debe ser sobre una única tabla.
+-- 		2) No puede haber funciones de agregación (count, sum, max, etc.).
+-- 		3) No puede haver ni GROUP BY ni HAVING.
+-- 		4) No puede haber DISTINCT.
+-- 		5) Los selects que contengan otros selects (selects anidados)
 
 
 
+-- Mostrar qué ha facturado en total 
+-- un cliente del cual conocemos su id
+SELECT nombre_cliente, apellido_cliente, SUM(p.precio_producto * cp.cantidad) as total
+FROM clientes cl
+JOIN clientes_productos cp
+ON cl.id_cliente = cp.id_cliente
+JOIN productos p
+ON cp.id_producto = p.id_producto
+WHERE cp.id_cliente = 3
+GROUP BY cp.id_cliente
+;
 
 
+
+-- Primer procedimiento: saludo
+DELIMITER //
+CREATE PROCEDURE sp_saludo ()
+	COMMENT "Saludo sencillo" -- es optativo
+    BEGIN -- { en Javascript
+		SELECT "Hola, ¿Qué tal?";
+    END // -- } en Javascript
+DELIMITER ;
+
+CALL sp_saludo ();
+CALL saludo2( "Ferran" );
+CALL saludo2( "Spiderman" );
+
+
+-- Vamos a añadir una columna a la tabla productos
+-- que llamará stock y va a tener un valor por defecto 
+-- de 5 unidades
+ALTER TABLE productos
+ADD COLUMN stock int DEFAULT 5;
+
+DESCRIBE productos;
+
+DROP PROCEDURE IF EXISTS sp_compra;
+DELIMITER $$
+CREATE PROCEDURE sp_compra (idCliente int, idProducto int, cantidad int)
+	COMMENT "Compra v.1"
+    BEGIN
+		INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
+        VALUES (idCliente, idProducto, cantidad);
+    END $$
+DELIMITER ;
+
+CALL sp_compra( 1, 7, 1);
+
+DROP PROCEDURE IF EXISTS sp_compra;
+DELIMITER $$
+CREATE PROCEDURE sp_compra (nombre_cliente varchar(30), 
+	apellido_cliente varchar(60), nombre_producto varchar(30), cantidad int)
+	COMMENT "Compra v.2"
+    BEGIN
+		INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
+        VALUES (idCliente, idProducto, cantidad);
+    END $$
+DELIMITER ;
+
+-- Mostrar el id de un cliente
+-- sabiendo su nombre y apellido
