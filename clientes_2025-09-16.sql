@@ -741,3 +741,7 @@ WHERE p.nombre_pais = "Italia";
 CALL st_add_client("Elena", "Nitodelbosque", "18", "Barcelona", "España");
 CALL st_add_client("Elena", "Nitodelbosque", "18", "Barcelona", "Venezuela");
 
+-- Falta por hacer:
+-- Actualizar el stock en el procedimiento sp_compra.
+-- Mostrar un mensaje si el cliente ya existe en la tabla clientes
+-- impidiendo que se inserte de nuevo
