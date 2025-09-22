@@ -625,12 +625,119 @@ DROP PROCEDURE IF EXISTS sp_compra;
 DELIMITER $$
 CREATE PROCEDURE sp_compra (nombre_cliente varchar(30), 
 	apellido_cliente varchar(60), nombre_producto varchar(30), cantidad int)
-	COMMENT "Compra v.2"
+	COMMENT "Compra v.3"
     BEGIN
-		INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
-        VALUES (idCliente, idProducto, cantidad);
+		-- variable para guardar el valor del id obtenido
+        -- por la consulta por nombre y apellido del cliente
+		DECLARE idCliente int;
+        DECLARE idProducto int;
+        
+        SELECT id_cliente
+        INTO idCliente
+		FROM clientes c
+		WHERE c.nombre_cliente = nombre_cliente and c.apellido_cliente = apellido_cliente;
+        
+        SELECT id_producto
+        INTO idProducto
+        FROM productos p
+        WHERE p.nombre_producto = nombre_producto;
+        
+        IF idCliente IS NULL OR idProducto IS NULL THEN
+			SELECT "Error en el nombre del cliente o el nombre del producto" as "error";
+		ELSE 
+			INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
+			VALUES (idCliente, idProducto, cantidad);
+		END IF;
+        
+        
+		
     END $$
 DELIMITER ;
 
 -- Mostrar el id de un cliente
 -- sabiendo su nombre y apellido
+SELECT id_cliente
+FROM clientes
+WHERE nombre_cliente = "Paul" and apellido_cliente = "Parker";
+
+CALL sp_compra("Clark", "Kent", "Kobo", 2);
+CALL sp_compra("Clark", "Ken", "Kobo", 2);
+
+-- Crear un procedimiento para añadir un cliente
+-- Indicaremos:
+-- 	1) nombre
+--	2) apellido
+--	3) edad
+--	4) población (si no existe, la añadiremos)
+--	5) país (si no existe, lo añadiremos)
+
+DELIMITER $$
+CREATE PROCEDURE st_add_client(
+	nombre_cliente varchar(30), 
+	apellido_cliente varchar(60), 
+    edad int,
+    nombre_ciudad varchar(100),
+    nombrePais varchar(50)
+    )
+    BEGIN
+		-- Variables para guardar los resultados de las consultas
+		DECLARE idPais int;
+        DECLARE idCiudad int;
+        
+        -- Debemos saber si existe en la tabla "paises" 
+        -- un país con el nombre indicado. 
+        -- Lo haremos guardando su id en la variable idPais.
+        -- Será "null" si el país no está en la tabla,
+        -- però si está obtendremos su id_pais
+        SELECT id_pais
+        INTO idPais
+		FROM paises p
+		WHERE p.nombre_pais = nombrePais;
+        
+        -- Si la consulta anterior devuelve "null"
+        -- ejecutaremos el siguiente código
+        IF idPais IS NULL THEN
+			-- Añadiremos el país, ahora que sabemos que no está en la tabla
+			INSERT INTO paises(nombre_pais) VALUES (nombrePais);
+            -- Obtendremos el id del país acabdo de añadir
+            SELECT id_pais INTO idPais
+			FROM paises p
+			WHERE p.nombre_pais = nombrePais;
+        END IF;
+        
+        -- Hacemos un select para obtener el id de la ciudad con el id de su pais.        
+        SELECT id_ciudad
+        INTO idCiudad
+        FROM ciudades c
+        WHERE c.nombre_ciudad = nombre_ciudad AND c.id_pais = idPais;
+        
+        -- Si es null, es que no existe una ciudad del país especificado
+        IF idCiudad IS NULL THEN
+			-- añadimos la ciudad con su id de país
+			INSERT INTO ciudades(nombre_ciudad, id_pais)
+            VALUES (nombre_ciudad, idPais);
+            -- buscamos que id de ciudad tiene la nueva ciudad 
+            -- que acabamos de añadir
+            SELECT id_ciudad
+			INTO idCiudad
+			FROM ciudades c
+			WHERE c.nombre_ciudad = nombre_ciudad AND c.id_pais = idPais;
+		END IF;
+        
+        -- Ahora podemos hacer el insert para añadir el cliente
+        INSERT INTO clientes(nombre_cliente, apellido_cliente, edad, id_ciudad)
+        VALUES (nombre_cliente, apellido_cliente, edad, idCiudad);
+        
+    END $$
+DELIMITER ;
+
+-- Hacer un select para saber si existe 
+-- un país en la tabla "paises"
+-- según el nombre del país
+SELECT id_pais
+FROM paises p
+WHERE p.nombre_pais = "Italia";
+
+CALL st_add_client("Elena", "Nitodelbosque", "18", "Barcelona", "España");
+CALL st_add_client("Elena", "Nitodelbosque", "18", "Barcelona", "Venezuela");
+
