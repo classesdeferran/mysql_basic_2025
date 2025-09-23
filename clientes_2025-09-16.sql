@@ -881,3 +881,22 @@ DELIMITER ;
 
 insert into clientes_productos(id_cliente, id_producto, cantidad)
 VALUES (1, 1, 1);
+
+
+
+
+CREATE TABLE alquiler(
+id_alquiler INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+fecha_recogida DATE NOT NULL,
+fecha_entrega DATE NULL,
+precio_dia decimal(10, 2)
+);
+
+insert into alquiler(fecha_recogida, fecha_entrega, precio_dia) values
+("2025-09-01", "2025-09-10", 100);
+
+SELECT (datediff(fecha_entrega, fecha_recogida) + 1) * precio_dia
+FROM alquiler;
+
+
+
