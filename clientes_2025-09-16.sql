@@ -631,6 +631,7 @@ CREATE PROCEDURE sp_compra (nombre_cliente varchar(30),
         -- por la consulta por nombre y apellido del cliente
 		DECLARE idCliente int;
         DECLARE idProducto int;
+        DECLARE miStock int;
         
         SELECT id_cliente
         INTO idCliente
@@ -642,15 +643,19 @@ CREATE PROCEDURE sp_compra (nombre_cliente varchar(30),
         FROM productos p
         WHERE p.nombre_producto = nombre_producto;
         
+		SELECT stock
+        INTO miStock
+        FROM productos p
+        WHERE p.nombre_producto = nombre_producto;
+        
         IF idCliente IS NULL OR idProducto IS NULL THEN
 			SELECT "Error en el nombre del cliente o el nombre del producto" as "error";
+		ELSEIF miStock IS NULL THEN
+			SELECT "Revise el stock del producto" as "Error en el stock";
 		ELSE 
 			INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
 			VALUES (idCliente, idProducto, cantidad);
-		END IF;
-        
-        
-		
+		END IF;		
     END $$
 DELIMITER ;
 
@@ -662,6 +667,7 @@ WHERE nombre_cliente = "Paul" and apellido_cliente = "Parker";
 
 CALL sp_compra("Clark", "Kent", "Kobo", 2);
 CALL sp_compra("Clark", "Ken", "Kobo", 2);
+
 
 -- Crear un procedimiento para añadir un cliente
 -- Indicaremos:
@@ -743,5 +749,135 @@ CALL st_add_client("Elena", "Nitodelbosque", "18", "Barcelona", "Venezuela");
 
 -- Falta por hacer:
 -- Actualizar el stock en el procedimiento sp_compra.
+-- No se puede realizar una venta de la cual no tengamos stock suficiente
+
 -- Mostrar un mensaje si el cliente ya existe en la tabla clientes
 -- impidiendo que se inserte de nuevo
+
+-- FUNCIONES
+SELECT NOW();
+
+SELECT nombre_cliente, apellido_cliente, edad, 
+nombre_ciudad, num_compras(id_cliente) as compras
+FROM clientes
+NATURAL JOIN ciudades
+WHERE id_cliente = 4
+;
+
+
+DROP FUNCTION IF EXISTS num_compras;
+DELIMITER $$
+CREATE FUNCTION num_compras(id_cliente int)
+RETURNS int DETERMINISTIC
+BEGIN
+	SET @num_compras = (
+		SELECT COUNT(id_cliente)
+		FROM clientes_productos cp
+		WHERE cp.id_cliente = id_cliente
+		GROUP BY cp.id_cliente
+    );
+    IF @num_compras IS NULL THEN
+		SET @num_compras = 0;
+	END IF;
+	RETURN @num_compras;
+END $$
+DELIMITER ;
+
+SELECT COUNT(id_cliente)
+FROM clientes_productos
+WHERE id_cliente = 4
+GROUP BY id_cliente;
+
+-- Función para obtener el importe total de las compras de un cliente
+-- importe_compras
+
+-- Modifica la función num_compras para que devuelva 0 
+-- si el cliente no ha comprado nada
+
+DROP TRIGGER IF EXISTS actualiza_stock;
+DELIMITER $$
+CREATE TRIGGER actualiza_stock
+-- BEFORE / AFTER
+AFTER INSERT ON clientes_productos
+FOR EACH ROW
+BEGIN
+	UPDATE productos SET stock = stock - new.cantidad 
+    WHERE id_producto = new.id_producto;
+END $$
+DELIMITER ;
+
+insert into clientes_productos(id_cliente, id_producto, cantidad) VALUES
+(1, 1, 3);
+
+-- Crear un trigger que si se produce la eliminación(DELETE)
+-- de una fila de la tabla clientes_productos
+-- restituya la cantidad al stock de la tabla productos.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DROP PROCEDURE IF EXISTS sp_compra2;
+DELIMITER $$
+CREATE PROCEDURE sp_compra2 (nombre_cliente varchar(30), 
+	apellido_cliente varchar(60), nombre_producto varchar(30), cantidad int)
+	COMMENT "Compra v.3"
+    BEGIN
+		-- variable para guardar el valor del id obtenido
+        -- por la consulta por nombre y apellido del cliente
+		DECLARE idCliente int;
+        DECLARE idProducto int;
+        DECLARE miStock int;
+        
+        SELECT id_cliente
+        INTO idCliente
+		FROM clientes c
+		WHERE c.nombre_cliente = nombre_cliente and c.apellido_cliente = apellido_cliente;
+        
+        SELECT id_producto
+        INTO idProducto
+        FROM productos p
+        WHERE p.nombre_producto = nombre_producto;
+        
+        SELECT stock
+        INTO miStock
+        FROM productos p
+        WHERE p.nombre_producto = nombre_producto;
+        
+        IF idCliente IS NULL OR idProducto IS NULL THEN
+			SELECT "Error en el nombre del cliente o el nombre del producto" as "error";
+		ELSEIF miStock IS NULL OR miStock < cantidad THEN
+			SELECT "Revise el stock disponible" as "error en stock";
+        ELSE 
+			INSERT INTO clientes_productos(id_cliente, id_producto, cantidad)
+			VALUES (idCliente, idProducto, cantidad);
+		END IF;		
+    END $$
+DELIMITER ;
+
+CALL sp_compra2("Clark", "Kent", "Kobo", 2);
+
+DROP trigger actualiza_stock;
+DELIMITER //
+CREATE TRIGGER actualiza_stock
+AFTER INSERT ON clientes_productos
+FOR EACH ROW
+BEGIN
+	UPDATE productos SET stock = stock - new.cantidad where id_producto = new.id_producto;
+END //
+DELIMITER ;
+
+insert into clientes_productos(id_cliente, id_producto, cantidad)
+VALUES (1, 1, 1);
